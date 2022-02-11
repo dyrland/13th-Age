@@ -5,22 +5,23 @@
 #do many things. I thought about a section on the left...but then I'm scrolling
 #I think just radio buttons for attack, defense, icon (not done)----
 
-#so, row 1, general info. Level dropdown (not done) High Weridness (not done), warp (not done), daily/battle count (not done)----
+#so, row 1, general info. Level dropdown (done, not linked) High Weridness (done, not pretty),
+#warp (done, not pretty), daily/battle count (not done)----
 #row 2, etc - things I have to do
 #make sure the high weirdness has an update so we can update on a crit
 
 #attack (not done)----
-#really easy, just the 3 attack spells + sorcerer spot
+#really easy, just the 3 attack spells + sorcerer spot (dynamic done)
 #option to gather power (and d6 dropdown)
 
 #defense----
 #high weirdness
 #warp effect!
-#defense spells + sorcerer spot
+#defense spells 
 
 #icon----
 #d12 drop down to dynamically show spells + sorcerer spot
-#option to gather power (and d6 drop down)
+#option to gather power (and d6 drop down) (dynamic done)
 
 #did it work?
 
@@ -144,14 +145,19 @@ ui <- tagList(
                          multiple=FALSE, selectize=FALSE),
              textOutput("Defense Warp"),
              
-             radioButtons("Chaos Magic", "chaos.magic",
+             radioButtons("chaos.magic", "Chaos Magic",
                           choices = c("Attack", "Defense", "Iconic"),
                           inline = TRUE)
              #three options!
              
+             
              #end of chaos mage tab
     ),
-    
+    column(3,
+           uiOutput("ui"),
+           uiOutput("ui2"),
+           uiOutput("Gather Power Table")
+    ),
     
     tabPanel("Initiative",
              titlePanel("Can I put in navlists in a navbar?"),
@@ -182,7 +188,36 @@ server <- function(input, output){
     }
     else "No Defense Warp Effect"
   )
-  
+  output$ui <- renderUI({
+    switch(input$chaos.magic,
+           "Attack" = radioButtons("gather.power", "Gather Power?",
+                                   choices = c("No", "Yes"), 
+                                   inline = TRUE),
+           p("Choose an attack Spell!"),
+           "Defense" = p("Defense"),
+           "Iconic" = radioButtons("gather.power", "Gather Power?",
+                                   choices = c("No", "Yes"), 
+                                   inline = TRUE)
+    )
+  })
+    output$ui2 <- renderUI({
+      switch(input$gather.power,
+             "No" = "",
+             "Yes" = selectInput(inputId = "Gather Power Table",
+                                 label = "",
+                                 choices = c("", 1:6),
+                                 multiple=FALSE, selectize=FALSE)
+      )
+    })
+    output$"Gather Power Table"   <- renderPrint({
+      if(length(input$"Gather Power Table" == 1) & input$gather.power == "Yes"){
+          def.icon %>%
+          filter(roll == input$"Gather Power Table") %>%
+          pull(text)
+      }
+      else "Enter your roll"
+    })
+
   
   
   

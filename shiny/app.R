@@ -5,8 +5,9 @@
 #do many things. I thought about a section on the left...but then I'm scrolling
 #I think just radio buttons for attack, defense, icon (not done)----
 
-#so, row 1, general info. Level dropdown (done, not linked) High Weridness (done, not pretty),
-#warp (done, not pretty), daily/battle count (not done)----
+#so, row 1, general info. Level dropdown (done, could be to the right)
+#High Weridness (done),
+#warp (done), daily/battle count (not done)----
 #row 2, etc - things I have to do
 #make sure the high weirdness has an update so we can update on a crit
 
@@ -22,6 +23,9 @@
 #icon----
 #d12 drop down to dynamically show spells + sorcerer spot
 #option to gather power (and d6 drop down) (dynamic done)
+
+#clean up ---- 
+#need to make consistent, legible labels
 
 #did it work?
 
@@ -101,13 +105,17 @@ hw.lookup.func <- function(j, vec, lookup){
     out <- vec[which(sapply(lookup, `%in%`, x = j))]
   }
   else if(length(j) == 2){
-    out <- vec[which(sapply(lookup, `%in%`, x = j), arr.ind = TRUE)[,2]]
+    out <- paste(vec[which(sapply(lookup, `%in%`, x = j), arr.ind = TRUE)[,2]],
+                 collapse = "<br/>")
   }
   else {
     out <- "No Effect (yet)"
   }
-  return(out)
+  return(out) 
+  #the cat() removes the [number]
 }
+
+hw.lookup.func(c(2,7), hwdt$text, hwls) -> test
 
 def.icon <- tibble(roll = 1:6,
                    text = c(
@@ -120,25 +128,51 @@ def.icon <- tibble(roll = 1:6,
                    )
 )
 
+gathering.power.table <-
+  tibble(max.level = rep(c(4,7,10), each = 6), 
+         roll = rep(1:6, 3),
+         text = rep(c("You gain a +1 bonus to AC until the start of your next turn.",
+                  "Deal damage equal to your level to all nearby staggered enemies.",
+                  "Deal damage equal to your level to one nearby enemy.",
+                  "You gain a +1 bonus to AC and Physical Defense until the start of your next turn.",
+                  "Deal damage equal to your level + your Charisma modifier to all nearby staggered enemies.",
+                  "Deal damage equal to your level + your Charisma modifier to one nearby enemy.",
+                  "You gain a +1 bonus to all defenses until the start of your next turn.",
+                  "Deal damage equal to your level + twice your Charisma modifier to all nearby staggered enemies.",
+                  "Deal damage equal to your level + twice your Charisma modifier to one nearby enemy."
+                  ), each = 2)
+  )
+#this works, clean up below, then bind them all together
+# gathering.power.table57
+# 1-2 	
+# 3-4 	
+# 5-6 	
+# Chaotic Benefit, Epic Tier (levels 8–10)
+# gathering.power.table810
+# 1-2 	
+# 3-4 	.
+# 5-6 	
 
+d10 <- 1:10
 
 ui <- tagList(
   #shinythemes::themeSelector(),
   navbarPage(
-    theme = shinythemes::shinytheme("readable"),
+    theme = shinythemes::shinytheme("spacelab"),
     "Hello!",
     tabPanel("Chaos Mage",
              selectInput(inputId = "Level",
                          label = "Level",
-                         choices = c(1:10), 
+                         choices = 1:10, 
                          selected = 1, selectize=FALSE),
              
              selectInput(inputId = "High Weirdness",
                          label = "High Weirdness Roll",
                          choices = c(1:100),
                          multiple=TRUE, selectize=TRUE),
-             verbatimTextOutput("High Weirdness"),
-             
+             htmlOutput("High Weirdness"),
+             #textOutput("High Weirdness"),
+
              selectInput(inputId = "Defense Warp",
                          label = "Defense Warp Roll",
                          choices = c("", 1:6),
@@ -147,16 +181,17 @@ ui <- tagList(
              
              radioButtons("chaos.magic", "Chaos Magic",
                           choices = c("Attack", "Defense", "Iconic"),
-                          inline = TRUE)
+                          inline = TRUE),
              #three options!
              
              
              #end of chaos mage tab
-    ),
-    column(3,
+    
+    #maybe some conditionalPanel() work to be done here?
            uiOutput("ui"),
            uiOutput("ui2"),
            uiOutput("Gather Power Table")
+    
     ),
     
     tabPanel("Initiative",
@@ -176,12 +211,25 @@ ui <- tagList(
 
 server <- function(input, output){
   
-  output$"High Weirdness" <- renderPrint(hw.lookup.func(input$"High Weirdness",
-                                                        vec = hwdt$text,
-                                                        lookup = hwls
-  ))
+  output$"High Weirdness" <- renderUI({
+    HTML(
+      paste(
+        hw.lookup.func(input$"High Weirdness",
+                       vec = hwdt$text,
+                       lookup = hwls
+        ), sep = "<br/>"
+      )
+    )
+  })
+  # output$"High Weirdness" <- renderText(
+  #   hw.lookup.func(input$"High Weirdness",
+  #                  vec = hwdt$text,
+  #                  lookup = hwls
+  #                  )
+  # )
+      
   #output$"High Weirdness input" <- renderPrint(input$"High Weirdness")
-  output$"Defense Warp"   <- renderPrint(
+  output$"Defense Warp"   <- renderText(
     if(length(input$"Defense Warp" == 1)) {def.icon %>%
         filter(roll == input$"Defense Warp") %>%
         pull(text)
@@ -204,19 +252,25 @@ server <- function(input, output){
       switch(input$gather.power,
              "No" = "",
              "Yes" = selectInput(inputId = "Gather Power Table",
-                                 label = "",
+                                 label = "Your Gather Power 1d6 Roll?",
                                  choices = c("", 1:6),
                                  multiple=FALSE, selectize=FALSE)
       )
     })
-    output$"Gather Power Table"   <- renderPrint({
+    output$"Gather Power Table" <- renderText({
       if(length(input$"Gather Power Table" == 1) & input$gather.power == "Yes"){
-          def.icon %>%
+          gathering.power.table %>%
           filter(roll == input$"Gather Power Table") %>%
+          filter(max.level >= as.numeric(input$Level)) %>%
+          filter(max.level == min(max.level)) %>%
           pull(text)
+          
+        #this doesn't work for levels 8-10? but does for others?
+        #something about maxlevel 10 dropping?
       }
-      else "Enter your roll"
+      else ""
     })
+    
 
   
   

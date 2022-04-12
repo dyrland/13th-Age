@@ -270,8 +270,12 @@ ui <- tagList(
     tabPanel("Initiative", 
              DTOutput("InitiativeTable"),
              
-             actionButton("UpdateButton", "Update!"),
-             actionButton("AddBaddieButton", "Add N/PC!")
+             actionButton("AdvanceButton", "Advance!"),
+             actionButton("AddNPCButton", "Add N/PC!"),
+             actionButton("Reset", "Reset"),
+             actionButton("Snake", "Snake!")
+             
+             #uiOutput('my_audio')
     ),
     tabPanel("Chaos Mage",
              selectInput(inputId = "Level",
@@ -329,7 +333,7 @@ server <- function(input, output){
   init.reactive <- reactiveValues()
   init.reactive$Data <- init.table
   
-  observeEvent(input$UpdateButton, {
+  observeEvent(input$AdvanceButton, {
     # temp <- reactive({
     #   temp <- init.reactive$Data
     #   temp$round[1] <- temp$round[1] + 1
@@ -353,7 +357,7 @@ server <- function(input, output){
     datatable(
       init.reactive$Data, 
       selection = "none",
-      editable = list(target = "cell", numeric = "none"),
+      editable = list(target = "cell"),
       rownames = FALSE, escape = FALSE, colnames = c("", "", "", ""),
       callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
       options = list(autoWidth = TRUE,
@@ -378,6 +382,57 @@ server <- function(input, output){
                                    "InitiativeTable",
                                    rownames = FALSE)
   })
+  observeEvent(input$AddNPCButton, {
+    temp <- init.reactive$Data %>% slice(1)
+    temp$picture <- sample(villagers$picture[
+                     !villagers$picture %in% init.reactive$Data$picture], 1)
+    temp$Character <- "New Character"
+    temp$Initiative <- 1
+    init.reactive$Data <- bind_rows(init.reactive$Data, temp)
+  }
+  )
+  
+  observeEvent(input$Reset, {
+    showModal(
+      modalDialog(
+        title = "R U 4 Realz?",
+        "Something Witty",
+        footer = tagList(
+         modalButton("Nope"),
+         actionButton("Yes", "No Doubt")
+        ), easyClose = TRUE
+      )
+    )
+  })
+  
+  observeEvent(input$Yes, {
+    init.reactive$Data <- init.table
+    removeModal()
+  }
+  )
+  
+  observeEvent(input$Snake, {
+    num <- sample(1:100, 1)
+    num <- case_when(between(num, 01, 19) ~ 1,
+                     between(num, 20, 38) ~ 2,
+                     between(num, 39, 57) ~ 3,
+                     between(num, 58, 76) ~ 4,
+                     between(num, 77, 95) ~ 5,
+                     between(num, 96, 99) ~ 9,
+                     between(num, 100, 100) ~ 10
+    )
+    file <- paste0("snake-", num, ".mp3")
+    
+    insertUI(selector = "#Snake",
+             where = "afterEnd",
+             ui = tags$audio(src = file, type = "audio/mp3", autoplay = NA, controls = NA, style="display:none;")  
+      )
+    })
+  
+  
+  # output$my_audio <- renderUI({
+  #   tags$audio(src = "snake-1.mp3", type = "audio/mp3", autoplay = NA, controls = NA)
+  # })
   
   output$"High Weirdness" <- renderUI({
     HTML(

@@ -264,10 +264,11 @@ headerCallbackRemoveHeaderFooter <- c(
 # ui ----
 ui <- tagList(
   #shinythemes::themeSelector(),
-  navbarPage(
+  fluidPage(
     theme = shinythemes::shinytheme("spacelab"),
-    "Hello!",
-    tabPanel("Initiative", 
+    title = "Initiative",
+    #titlePanel("Initiative Table"),
+    #mainPanel( 
              DTOutput("InitiativeTable"),
              
              actionButton("AdvanceButton", "Advance!"),
@@ -276,54 +277,54 @@ ui <- tagList(
              actionButton("Snake", "Snake!")
              
              #uiOutput('my_audio')
-    ),
-    tabPanel("Chaos Mage",
-             selectInput(inputId = "Level",
-                         label = "Level",
-                         choices = 1:10, 
-                         selected = 2, selectize=FALSE),
-             
-             selectInput(inputId = "High Weirdness",
-                         label = "High Weirdness Roll",
-                         choices = c(1:100),
-                         multiple=TRUE, selectize=TRUE),
-             htmlOutput("High Weirdness"),
-             #textOutput("High Weirdness"),
-
-             selectInput(inputId = "Icon Warp",
-                         label = "Icon Warp Roll",
-                         choices = c("", 1:6),
-                         multiple=FALSE, selectize=FALSE),
-             textOutput("Icon Warp"),
-             
-             radioButtons("chaos.magic", "Chaos Magic",
-                          choices = c("Attack", "Defense", "Iconic"),
-                          inline = TRUE),
-             #three options!
-             
-             
-             #end of chaos mage tab
-    
-    #maybe some conditionalPanel() work to be done here?
-           uiOutput("Magic Type"),
-           uiOutput("Gather Power Choice"),
-           uiOutput("Gather Power Table")
-    
-    ),
-    
-    tabPanel("Initiative thoughts",
-             titlePanel("Can I put in navlists in a navbar?"),
-             navlistPanel("Header",
-                          tabPanel("First",
-                                   h3("Forthcoming")
-                          ),
-                          tabPanel("Second",
-                                   h3("some more words, maybe https://yihui.shinyapps.io/DT-edit/")
-                          )
-                          #i think my thoughts are to make a table and then 
-                          #hit a button and it auto sorts and highlights a row
-             )
-    )
+    #)
+  #   tabPanel("Chaos Mage",
+  #            selectInput(inputId = "Level",
+  #                        label = "Level",
+  #                        choices = 1:10, 
+  #                        selected = 2, selectize=FALSE),
+  #            
+  #            selectInput(inputId = "High Weirdness",
+  #                        label = "High Weirdness Roll",
+  #                        choices = c(1:100),
+  #                        multiple=TRUE, selectize=TRUE),
+  #            htmlOutput("High Weirdness"),
+  #            #textOutput("High Weirdness"),
+  # 
+  #            selectInput(inputId = "Icon Warp",
+  #                        label = "Icon Warp Roll",
+  #                        choices = c("", 1:6),
+  #                        multiple=FALSE, selectize=FALSE),
+  #            textOutput("Icon Warp"),
+  #            
+  #            radioButtons("chaos.magic", "Chaos Magic",
+  #                         choices = c("Attack", "Defense", "Iconic"),
+  #                         inline = TRUE),
+  #            #three options!
+  #            
+  #            
+  #            #end of chaos mage tab
+  #   
+  #   #maybe some conditionalPanel() work to be done here?
+  #          uiOutput("Magic Type"),
+  #          uiOutput("Gather Power Choice"),
+  #          uiOutput("Gather Power Table")
+  #   
+  #   ),
+  #   
+  #   tabPanel("Initiative thoughts",
+  #            titlePanel("Can I put in navlists in a navbar?"),
+  #            navlistPanel("Header",
+  #                         tabPanel("First",
+  #                                  h3("Forthcoming")
+  #                         ),
+  #                         tabPanel("Second",
+  #                                  h3("some more words, maybe https://yihui.shinyapps.io/DT-edit/")
+  #                         )
+  #                         #i think my thoughts are to make a table and then 
+  #                         #hit a button and it auto sorts and highlights a row
+  #            )
+  #   )
   )
 )
 
@@ -434,83 +435,76 @@ server <- function(input, output){
   #   tags$audio(src = "snake-1.mp3", type = "audio/mp3", autoplay = NA, controls = NA)
   # })
   
-  output$"High Weirdness" <- renderUI({
-    HTML(
-      paste(
-        hw.lookup.func(input$"High Weirdness",
-                       vec = hwdt$text,
-                       lookup = hwls
-        ), sep = "<br/>"
-      )
-    )
-  })
-  # output$"High Weirdness" <- renderText(
-  #   hw.lookup.func(input$"High Weirdness",
-  #                  vec = hwdt$text,
-  #                  lookup = hwls
-  #                  )
+  # output$"High Weirdness" <- renderUI({
+  #   HTML(
+  #     paste(
+  #       hw.lookup.func(input$"High Weirdness",
+  #                      vec = hwdt$text,
+  #                      lookup = hwls
+  #       ), sep = "<br/>"
+  #     )
+  #   )
+  # })
+  # 
+  # output$"Icon Warp"   <- renderText(
+  #   if(length(input$"Icon Warp" == 1)) {icon.warp %>%
+  #       filter(roll == input$"Icon Warp") %>%
+  #       pull(text)
+  #   }
+  #   else "No Icon Warp Effect"
   # )
-      
-  #output$"High Weirdness input" <- renderPrint(input$"High Weirdness")
-  output$"Icon Warp"   <- renderText(
-    if(length(input$"Icon Warp" == 1)) {icon.warp %>%
-        filter(roll == input$"Icon Warp") %>%
-        pull(text)
-    }
-    else "No Icon Warp Effect"
-  )
-  output$"Magic Type" <- renderUI({
-    switch(input$chaos.magic,
-           "Attack" = fluidPage(radioButtons("gather.power", "Gather Power?",
-                                   choices = c("No", "Yes"), 
-                                   inline = TRUE),
-           p("Choose an attack Spell!")
-           ), #issue that this isn't appearing
-           "Defense" = p("Choose a Defense spell"),
-           "Iconic"  = fluidPage(p("Roll Weirdness AND Roll an Iconic warp, Roll a d12 (or 2), examine spells, gather power"),
-             radioButtons("gather.power", "Gather Power?",
-                                   choices = c("No", "Yes"), 
-                                   inline = TRUE),
-             #uncertain about this
-             selectInput(inputId = "Icon Roll",
-                         label = "Icon Spell Roll",
-                         choices = c(1:12),
-                         multiple=TRUE, selectize=TRUE),
-             gt_output("icon.table")
-           )
-    )
-  })
-    output$"Gather Power Choice" <- renderUI({
-      switch(input$gather.power,
-             "No" = "",
-             "Yes" = selectInput(inputId = "Gather Power Table",
-                                 label = "Your Gather Power 1d6 Roll?",
-                                 choices = c("", 1:6),
-                                 multiple=FALSE, selectize=FALSE)
-      )
-    })
-    output$"Gather Power Table" <- renderText({
-      if(length(input$"Gather Power Table" == 1) & input$gather.power == "Yes"){
-          gathering.power.table %>%
-          filter(roll == input$"Gather Power Table") %>%
-          filter(max.level >= as.numeric(input$Level)) %>%
-          filter(max.level == min(max.level)) %>%
-          pull(text)
-          
-        #this doesn't work for levels 8-10? but does for others?
-        #something about maxlevel 10 dropping?
-      }
-      else ""
-    })
-    output$icon.table <- render_gt(
-      expr = icon.spells %>% 
-             filter(roll %in% input$"Icon Roll") %>%
-             filter(level <= input$Level) %>%
-             select(-roll, - level) %>%
-             gt() %>%
-             tab_header(title = "Icon Spell Choices"),
-      align = "left"
-    )
+  # output$"Magic Type" <- renderUI({
+  #   switch(input$chaos.magic,
+  #          "Attack" = fluidPage(radioButtons("gather.power", "Gather Power?",
+  #                                  choices = c("No", "Yes"), 
+  #                                  inline = TRUE),
+  #          p("Choose an attack Spell!")
+  #          ), #issue that this isn't appearing
+  #          "Defense" = p("Choose a Defense spell"),
+  #          "Iconic"  = fluidPage(p("Roll Weirdness AND Roll an Iconic warp, Roll a d12 (or 2), examine spells, gather power"),
+  #            radioButtons("gather.power", "Gather Power?",
+  #                                  choices = c("No", "Yes"), 
+  #                                  inline = TRUE),
+  #            #uncertain about this
+  #            selectInput(inputId = "Icon Roll",
+  #                        label = "Icon Spell Roll",
+  #                        choices = c(1:12),
+  #                        multiple=TRUE, selectize=TRUE),
+  #            gt_output("icon.table")
+  #          )
+  #   )
+  # })
+  #   output$"Gather Power Choice" <- renderUI({
+  #     switch(input$gather.power,
+  #            "No" = "",
+  #            "Yes" = selectInput(inputId = "Gather Power Table",
+  #                                label = "Your Gather Power 1d6 Roll?",
+  #                                choices = c("", 1:6),
+  #                                multiple=FALSE, selectize=FALSE)
+  #     )
+  #   })
+  #   output$"Gather Power Table" <- renderText({
+  #     if(length(input$"Gather Power Table" == 1) & input$gather.power == "Yes"){
+  #         gathering.power.table %>%
+  #         filter(roll == input$"Gather Power Table") %>%
+  #         filter(max.level >= as.numeric(input$Level)) %>%
+  #         filter(max.level == min(max.level)) %>%
+  #         pull(text)
+  #         
+  #       #this doesn't work for levels 8-10? but does for others?
+  #       #something about maxlevel 10 dropping?
+  #     }
+  #     else ""
+  #   })
+  #   output$icon.table <- render_gt(
+  #     expr = icon.spells %>% 
+  #            filter(roll %in% input$"Icon Roll") %>%
+  #            filter(level <= input$Level) %>%
+  #            select(-roll, - level) %>%
+  #            gt() %>%
+  #            tab_header(title = "Icon Spell Choices"),
+  #     align = "left"
+  #   )
     
 
   

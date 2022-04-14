@@ -1,36 +1,7 @@
-#lets do some thoughts, then figure out how to git commit with a button, 
-#then get programming.
-
-#well, the first thing is that I like the multi nava bar on the top, so it can
-#do many things. I thought about a section on the left...but then I'm scrolling
-#I think just radio buttons for attack, defense, icon ( done)----
-
-#so, row 1, general info. Level dropdown (done, could be to the right)
-#High Weridness (done),
-#warp (done), daily/battle count (not done, not happening)----
-#row 2, etc - things I have to do
-#make sure the high weirdness has an update so we can update on a crit
-
-#attack (done)----
-#really easy, just the 3 attack spells + sorcerer spot (dynamic done)
-#option to gather power (and d6 dropdown)
-
-#defense----
-#high weirdness
-#warp effect!
-#defense spells 
-
-#icon----
-#d12 drop down to dynamically show spells + sorcerer spot
-#option to gather power (and d6 drop down) (dynamic done)
-
-#clean up ---- 
-#need to make consistent, legible labels
-
-#did it work?
-
-#after getting about 90% of the way there, I think I need to re-arange. 
-#three cols under the high weirdness and warp status - icon attk defense
+#new notes!
+#I need to get persistent storage
+#i need to get a minimum width - DONE!
+#and I need baddies to be random on rest
 
 library(tidyverse)
 library(shiny)
@@ -241,25 +212,41 @@ villagers <- villagers %>%
   #filter(name %in% c("Nibbles", "Sterling", "Big Top", "Lionel", "Roscoe")) %>%
   #me, joey, baddies, #britt
   mutate(
-    picture = paste0(
+    Avatar = paste0(
       "<img src=\"",
       url,
       #"\" height=\"30\"",
       "\"></img>"
     )
   ) %>%
-  select(picture, name, personality, phrase)
+  select(Avatar, name, personality, phrase)
 
 #we could probably randomly sample...
 
 init.table <- left_join(init.table, villagers) %>%
-  select(round, picture, Character, Initiative)
+  select(round, Avatar, Character, Initiative)
 
 headerCallbackRemoveHeaderFooter <- c(
   "function(thead, data, start, end, display){",
   "  $('th', thead).css('display', 'none');",
   "}"
 )
+
+# js <- c(
+#   "function(settings){",
+#   "  $('#s').ionRangeSlider({",
+#   "    type: 'double',",
+#   "    grid: true,",
+#   "    grid_num: 10,",
+#   "    min: 0,",
+#   "    max: 20,",
+#   "    from: 5,",
+#   "    to: 15",
+#   "  });",
+#   "}"
+# )
+
+
 #init.table <- villagers
 # ui ----
 ui <- tagList(
@@ -267,6 +254,7 @@ ui <- tagList(
   fluidPage(
     theme = shinythemes::shinytheme("spacelab"),
     title = "Initiative",
+    align = "center",
     #titlePanel("Initiative Table"),
     #mainPanel( 
              DTOutput("InitiativeTable"),
@@ -275,6 +263,8 @@ ui <- tagList(
              actionButton("AddNPCButton", "Add N/PC!"),
              actionButton("Reset", "Reset"),
              actionButton("Snake", "Snake!")
+        
+             #DTOutput("test")
              
              #uiOutput('my_audio')
     #)
@@ -331,6 +321,34 @@ ui <- tagList(
 
 server <- function(input, output){
   
+  # output$test <- renderDT({
+  #   data <- data.frame(ROW = 1:5,
+  #                      TEXT = '<input id="text" type="text" class="form-control" value=""/>',
+  #                      SINGLE_SELECT = '<select id="single_select" style="width: 100%;">
+  #                      <option value="" selected></option>
+  #                      <option value="A">A</option>
+  #                      <option value="B">B</option>
+  #                      <option value="C">C</option>
+  #                      </select>',
+  #                      SLIDER = '<input type="text" id="s" name="slider" value="" />',
+  #                      MULTIPLE_SELECT = '<select id="multiple_select" class="form-control" multiple="multiple">
+  #                      <option value=""></option>
+  #                      <option value="A">A</option>
+  #                      <option value="B">B</option>
+  #                      <option value="C">C</option>
+  #                      </select>',
+  #                      stringsAsFactors = FALSE)
+  #   
+  #   datatable(data = data,
+  #             selection = "none",
+  #             escape = FALSE,
+  #             rownames = FALSE, 
+  #             options = 
+  #               list(
+  #                 initComplete = JS(js)
+  #               ))
+  # })
+  
   init.reactive <- reactiveValues()
   init.reactive$Data <- init.table
   
@@ -359,17 +377,18 @@ server <- function(input, output){
       init.reactive$Data, 
       selection = "none",
       editable = list(target = "cell"),
-      rownames = FALSE, escape = FALSE, colnames = c("", "", "", ""),
+      rownames = FALSE, escape = FALSE, 
       callback = JS("$.fn.dataTable.ext.errMode = 'none';"),
+      #colnames = c("","",""),
       options = list(autoWidth = TRUE,
                      ordering = FALSE,
                      paging = FALSE,
                      searching = FALSE,
                      dom = "t",
                      scrollX = TRUE,
-                     columnDefs = list(list(visible=FALSE, targets=0)),
-                     headerCallback = JS(headerCallbackRemoveHeaderFooter)
-    )),
+                     columnDefs = list(list(visible=FALSE, targets=0))
+                     #headerCallback = JS(headerCallbackRemoveHeaderFooter)
+    )) %>% formatStyle(columns = c(4), `text-align` = "center"),
     server = TRUE
   )
   

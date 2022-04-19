@@ -8,7 +8,12 @@ library(shiny)
 library(gt)
 library(conflicted)
 library(DT)
-
+library(rdrop2)
+#drop_auth()
+#token <- drop_auth()
+#saveRDS(token, file = "token.RDS")
+token <- readRDS("token.RDS") #note that token exists in two places...
+#drop_auth(rdstoken = token)
 conflict_scout()
 conflict_prefer("filter", "dplyr")
 
@@ -190,41 +195,66 @@ icon.spells <- tibble(
 )
 
 
-
-villagers <-
-  readr::read_csv(
-    'https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-05-05/villagers.csv'
-  ) %>% 
-  select(-row_n) %>% 
-  unique()
-pc.ava <- c("Sterling", "Nibbles", "Lionel", "Roscoe")
-npc.ava <- sample(villagers$name[!villagers$name %in% pc.ava], 1)
-
-init.table <- tibble(round = 0,
-                     Character = c("Baddies", "Glarna", "Jade",
-                                    "Concha", "Dedna"),
-                     name = c(npc.ava, pc.ava),
-                              Initiative = c(20, 15, 25, 10, 10)
-                            
-)
-                     
-villagers <- villagers %>%
-  #filter(name %in% c("Nibbles", "Sterling", "Big Top", "Lionel", "Roscoe")) %>%
-  #me, joey, baddies, #britt
-  mutate(
-    Avatar = paste0(
-      "<img src=\"",
-      url,
-      #"\" height=\"30\"",
-      "\"></img>"
-    )
-  ) %>%
-  select(Avatar, name, personality, phrase)
-
-#we could probably randomly sample...
-
-init.table <- left_join(init.table, villagers) %>%
-  select(round, Avatar, Character, Initiative)
+#code to run once to download and format the init table
+# villagers <-
+#   readr::read_csv(
+#     'https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-05-05/villagers.csv'
+#   ) %>% 
+#   select(-row_n) %>% 
+#   unique()
+# pc.ava <- c("Sterling", "Nibbles", "Lionel", "Roscoe")
+# npc.ava <- sample(villagers$name[!villagers$name %in% pc.ava], 1)
+# 
+# # init.table <- tibble(round = 0,
+# #                      Character = c("Baddies", "Glarna", "Jade",
+# #                                     "Concha", "Dedna"),
+# #                      name = c(npc.ava, pc.ava),
+# #                               Initiative = c(20, 15, 25, 10, 10)
+# #                             
+# # )
+#                      
+# villagers <- villagers %>%
+#   #filter(name %in% c("Nibbles", "Sterling", "Big Top", "Lionel", "Roscoe")) %>%
+#   #me, joey, baddies, #britt
+#   mutate(
+#     Avatar = paste0(
+#       "<img src=\"",
+#       url,
+#       #"\" height=\"30\"",
+#       "\"></img>"
+#     )
+#   ) %>%
+#   select(Avatar, name) %>%
+#   mutate(round = 0)
+# 
+# pcs <- villagers %>%
+#   filter(name %in% c("Sterling", "Nibbles", "Lionel", "Roscoe")) %>%
+#   #here on name, then a random one - or maybe later?
+#   mutate(round = 0,
+#          Character = c("Concha", "Jade", "Dedna", "Sterling"),
+#          Initiative = c(13, 15, 18, 20)
+#   ) %>%
+#     select(round, Avatar, Character, Initiative)
+#          
+#     #then mutate round, character, Initiative and Avatar
+#     #then select down
+#     #then save to drop)
+# 
+# #we could probably randomly sample...
+# npcs <- villagers %>%
+#   filter(!name %in% c("Sterling", "Nibbles", "Lionel", "Roscoe")) %>%
+#   #here on name, then a random one - or maybe later?
+#   mutate(round = 0,
+#          Character = "Baddies",
+#          Initiative = 25
+#   ) %>%
+#   select(round, Avatar, Character, Initiative)
+# 
+# saveRDS(pcs, file = "pcs.RDS")
+# saveRDS(npcs, file = "npcs.RDS")
+# 
+# drop_upload("pcs.RDS", dtoken = token)
+# drop_upload("npcs.RDS", dtoken = token)
 
 headerCallbackRemoveHeaderFooter <- c(
   "function(thead, data, start, end, display){",
@@ -348,7 +378,13 @@ server <- function(input, output){
   #                 initComplete = JS(js)
   #               ))
   # })
-  
+  drop_download("pcs.RDS", dtoken = token, overwrite = TRUE)
+  pcs <- readRDS("pcs.RDS")
+  drop_download("npcs.RDS", dtoken = token, overwrite = TRUE)
+  npcs <- readRDS("npcs.RDS")
+  drop_download("init_table.RDS", dtoken = token, overwrite = TRUE)
+  init.table <- readRDS("init_table.RDS")
+
   init.reactive <- reactiveValues()
   init.reactive$Data <- init.table
   
@@ -369,6 +405,9 @@ server <- function(input, output){
     #init.reactive$Data$Initiative[1] <- init.reactive$Data$Initiative[1] +1
     init.reactive$Data <- init.reactive$Data %>%
      arrange(round, desc(Initiative))
+    
+    saveRDS(init.reactive$Data, file = "init_table.RDS")
+    drop_upload("init_table.RDS", dtoken = token)
   }
   )
   
@@ -401,11 +440,14 @@ server <- function(input, output){
                                    input$InitiativeTable_cell_edit,
                                    "InitiativeTable",
                                    rownames = FALSE)
+    
+  saveRDS(init.reactive$Data, file = "init_table.RDS")
+  drop_upload("init_table.RDS", dtoken = token)
   })
   observeEvent(input$AddNPCButton, {
-    temp <- init.reactive$Data %>% slice(1)
-    temp$picture <- sample(villagers$picture[
-                     !villagers$picture %in% init.reactive$Data$picture], 1)
+    temp <- npcs %>% slice_sample(n = 1)
+    # temp$picture <- sample(villagers$picture[
+    #                  !villagers$picture %in% init.reactive$Data$picture], 1)
     temp$Character <- "New Character"
     temp$Initiative <- 1
     init.reactive$Data <- bind_rows(init.reactive$Data, temp)
@@ -415,18 +457,21 @@ server <- function(input, output){
   observeEvent(input$Reset, {
     showModal(
       modalDialog(
-        title = "R U 4 Realz?",
-        "Something Witty",
+        title = "This will reset to 4 PCs and an NPC.",
+        "Continue",
         footer = tagList(
-         modalButton("Nope"),
-         actionButton("Yes", "No Doubt")
+          actionButton("Yes", "Yes"),
+          modalButton("Eeek, No!")
         ), easyClose = TRUE
       )
     )
   })
   
   observeEvent(input$Yes, {
-    init.reactive$Data <- init.table
+    
+    init.reactive$Data <- bind_rows(
+      npcs %>% slice_sample(),
+      pcs)
     removeModal()
   }
   )
